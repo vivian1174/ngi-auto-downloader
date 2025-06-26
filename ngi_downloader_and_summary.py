@@ -71,11 +71,12 @@ try:
         session.cookies.set(cookie['name'], cookie['value'])
 
     headers = {
-        'User-Agent': 'Mozilla/5.0',
-        'Referer': 'https://www.naturalgasintel.com/news/daily-gas-price-index/',
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+                       (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Referer": "https://www.naturalgasintel.com/news/daily-gas-price-index/",
     }
-
-    resp = session.get(current_url, headers=headers)
+    resp = session.get(pdf_url, headers=headers)
+    
     if resp.status_code == 200:
         with open(pdf_path, 'wb') as f:
             f.write(resp.content)
