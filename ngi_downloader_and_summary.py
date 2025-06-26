@@ -74,25 +74,28 @@ try:
             EC.element_to_be_clickable((By.LINK_TEXT, "View Issue"))
         )
         print("找到按鈕:", view_issue_button)
-
-        old_url = driver.current_url
-
-        # 改為 JS 點擊，較穩定
+    
+        # 改用 JavaScript click，觸發 AJAX 載入
         driver.execute_script("arguments[0].click();", view_issue_button)
         print("已觸發 JS 點擊 'View Issue'")
-
-        # 等待 URL 改變
-        WebDriverWait(driver, 15).until(EC.url_changes(old_url))
+    
+        # 等待 PDF 連結出現（代表內容載入完成）
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
+        )
+        print("✅ PDF 連結已出現，視為成功載入期刊內容")
+    
+        # 現在可以抓 URL 來抽日期（有可能還是原本 URL，但 PDF 連結會變）
         current_url = driver.current_url
-        print(f"✅ 跳轉後 URL: {current_url}")
-
+        print(f"目前 URL: {current_url}")
+    
     except Exception:
         current_url = driver.current_url
-        print(f"⚠️ URL 沒有變化（仍為: {current_url}），可能點擊失敗或內容未載入")
+        print(f"⚠️ 未找到 PDF 或頁面未更新（仍為: {current_url}）")
         with open("view_issue_fail.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
         driver.save_screenshot("view_issue_fail.png")
-        raise Exception("找不到 'View Issue' 按鈕或無法跳轉，已截圖")
+        raise Exception("找不到 'View Issue' 按鈕或期刊內容未載入，已截圖")
 
     # 跳轉並取得 URL
     time.sleep(5)
