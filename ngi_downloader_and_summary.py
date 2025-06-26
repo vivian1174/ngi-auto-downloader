@@ -35,7 +35,7 @@ options.add_argument('--disable-blink-features=AutomationControlled')
 options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.110 Safari/537.36')
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
+#
 try:
     # 登入 NGI
     driver.get('https://www.naturalgasintel.com/account/login/')
@@ -46,27 +46,32 @@ try:
 
     # 前往 Daily Gas Page
     driver.get('https://www.naturalgasintel.com/news/daily-gas-price-index/')
-    cookie_button = WebDriverWait(driver, 20).until(
-        EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept')]"))
-    )
-    cookie_button.click()
+    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept')]"))).click()
 
     view_issue_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.LINK_TEXT, "View Issue"))
     )
     view_issue_button.click()
 
-    time.sleep(5)
-    current_url = driver.current_url
-    match = re.search(r'dg(\d{8})', current_url)
+    # 等待頁面載入並點開「Download PDF」按鈕（或 iframe/連結）
+    time.sleep(5)  # 可改成顯式等待
+
+    # 從頁面上找出 PDF 連結（帶有 .pdf 的連結）
+    pdf_link_elem = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
+    )
+    pdf_url = pdf_link_elem.get_attribute("href")
+
+    # 抓日期（用 pdf_url 也行）
+    match = re.search(r'dg(\d{8})', pdf_url)
     if not match:
-        raise Exception("❌ 無法從 URL 中抓取日期")
+        raise Exception("❌ 無法從 PDF 連結中提取日期")
     date_str = match.group(1)
-    pdf_url = f"https://www.naturalgasintel.com/protected_documents/dg{date_str}.pdf"
+
+    # 下載 PDF 檔案
     pdf_filename = f"NGI_daily_index_{date_str}.pdf"
     pdf_path = os.path.join(download_dir, pdf_filename)
 
-    # 使用 Session + Cookie 下載 PDF
     session = requests.Session()
     for cookie in driver.get_cookies():
         session.cookies.set(cookie['name'], cookie['value'])
@@ -74,10 +79,10 @@ try:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
                        (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Referer": "https://www.naturalgasintel.com/news/daily-gas-price-index/",
+        "Referer": driver.current_url,
     }
+
     resp = session.get(pdf_url, headers=headers)
-    
     if resp.status_code == 200:
         with open(pdf_path, 'wb') as f:
             f.write(resp.content)
@@ -87,6 +92,9 @@ try:
 
 finally:
     driver.quit()
+
+# 🧠 PDF 摘要（同原來程式）
+# summarize_pdf_with_groq(...) + 儲存摘要部分照舊
 
 # 🧠 將 PDF 轉成 base64 並送給 Groq
 def summarize_pdf_with_groq(file_path, api_key):
