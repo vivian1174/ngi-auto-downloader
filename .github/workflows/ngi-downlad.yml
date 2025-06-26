@@ -2,8 +2,8 @@ name: Download NGI Daily PDF
 
 on:
   schedule:
-    - cron: '2 3 * * *'  # 每天 UTC 0 點 = 台灣早上 7 點
-  workflow_dispatch:     # 允許手動執行
+    - cron: '2 3 * * *'  # 每天 UTC 3:02
+  workflow_dispatch:
 
 jobs:
   download_pdf:
@@ -13,7 +13,26 @@ jobs:
       - name: ✅ Checkout Repo
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget curl gnupg unzip
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install -y ./google-chrome-stable_current_amd64.deb
+
+      - name: Install ChromeDriver
+        run: |
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+          echo "Chrome version: $CHROME_VERSION"
+          LATEST_DRIVER_VERSION=$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+          echo "ChromeDriver version: $LATEST_DRIVER_VERSION"
+          wget -O chromedriver.zip "https://chromedriver.storage.googleapis.com/${LATEST_DRIVER_VERSION}/chromedriver_linux64.zip"
+          unzip chromedriver.zip
+          sudo mv chromedriver /usr/local/bin/
+          chmod +x /usr/local/bin/chromedriver
+          chromedriver --version
+
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -31,24 +50,11 @@ jobs:
         run: |
           mkdir -p pdf_downloads
           python ngi_downloader_and_summary.py
+          echo "下載資料夾內容："
+          ls -l pdf_downloads
 
       - name: 📤 Upload PDF to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ngi-daily-pdf
           path: pdf_downloads/*.pdf
-
-      - name: Install Chrome
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget curl gnupg unzip
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt install -y ./google-chrome-stable_current_amd64.deb
-
-      - name: Install ChromeDriver
-        run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-          wget -O chromedriver.zip "https://chromedriver.storage.googleapis.com/$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip"
-          unzip chromedriver.zip
-          sudo mv chromedriver /usr/local/bin/
-          chromedriver --version
