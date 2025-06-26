@@ -26,7 +26,7 @@ prefs = {
     "directory_upgrade": True,
 }
 options.add_experimental_option("prefs", prefs)
-#options.add_argument("--headless=new")
+options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--disable-gpu")
