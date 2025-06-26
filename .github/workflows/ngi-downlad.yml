@@ -25,6 +25,7 @@ jobs:
         env:
           NGI_USERNAME: ${{ NGI_SECRET.NGI_USERNAME }}
           NGI_PASSWORD: ${{ NGI_SECRET.NGI_PASSWORD }}
+          GROQ_API_KEY: ${{ NGI_SECRET.GROQ_API_KEY }}
         run: |
           mkdir -p pdf_downloads
           python ngi_downloader.py
