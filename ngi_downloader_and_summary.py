@@ -26,10 +26,13 @@ prefs = {
     "download.default_directory": download_dir,
     "plugins.always_open_pdf_externally": True
 }
-options.add_argument("--headless")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_experimental_option("prefs", prefs)
+options.add_argument('--headless')
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument('--disable-gpu')
+options.add_argument('--window-size=1920x1080')
+options.add_argument('--disable-blink-features=AutomationControlled')
+options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.110 Safari/537.36')
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
