@@ -1,7 +1,6 @@
 import os
 import re
 import time
-import base64
 import requests
 from datetime import datetime
 from selenium import webdriver
@@ -11,12 +10,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# 讀取環境變數（帳號、密碼、Groq API）
+# 帳號密碼從環境變數中讀取
 username_str = os.getenv("NGI_USERNAME")
 password_str = os.getenv("NGI_PASSWORD")
-groq_api_key = os.getenv("GROQ_API_KEY")
 
-# 檔案儲存資料夾
+# 建立下載資料夾
 download_dir = os.path.abspath("downloads")
 os.makedirs(download_dir, exist_ok=True)
 
@@ -26,112 +24,67 @@ prefs = {
     "download.default_directory": download_dir,
     "plugins.always_open_pdf_externally": True
 }
+options.add_experimental_option("prefs", prefs)
 options.add_argument('--headless')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--disable-gpu')
 options.add_argument('--window-size=1920x1080')
 options.add_argument('--disable-blink-features=AutomationControlled')
-options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.5735.110 Safari/537.36')
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-#
+
 try:
-    # 登入 NGI
-    driver.get('https://www.naturalgasintel.com/account/login/')
-    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'id_username')))
-    driver.find_element(By.ID, 'id_username').send_keys(username_str)
-    driver.find_element(By.ID, 'field-password').send_keys(password_str)
+    # 1️⃣ 登入
+    driver.get("https://www.naturalgasintel.com/account/login/")
+    WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "id_username")))
+    driver.find_element(By.ID, "id_username").send_keys(username_str)
+    driver.find_element(By.ID, "field-password").send_keys(password_str)
     driver.find_element(By.XPATH, "//button[text()='Sign In']").click()
 
-    # 前往 Daily Gas Page
-    driver.get('https://www.naturalgasintel.com/news/daily-gas-price-index/')
-    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept')]"))).click()
+    # 2️⃣ 進入 Daily Gas Page 並接受 cookie
+    driver.get("https://www.naturalgasintel.com/news/daily-gas-price-index/")
+    cookie_btn = WebDriverWait(driver, 20).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept')]"))
+    )
+    cookie_btn.click()
 
+    # 3️⃣ 點選 View Issue
     view_issue_button = WebDriverWait(driver, 20).until(
         EC.element_to_be_clickable((By.LINK_TEXT, "View Issue"))
     )
     view_issue_button.click()
 
-    # 等待頁面載入並點開「Download PDF」按鈕（或 iframe/連結）
-    time.sleep(5)  # 可改成顯式等待
+    # 4️⃣ 等待頁面跳轉 & 擷取 PDF 頁面 URL
+    time.sleep(5)
+    current_url = driver.current_url
+    print(f"View Issue 頁面 URL: {current_url}")
 
-    # 從頁面上找出 PDF 連結（帶有 .pdf 的連結）
-    pdf_link_elem = WebDriverWait(driver, 20).until(
-        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
-    )
-    pdf_url = pdf_link_elem.get_attribute("href")
-
-    # 抓日期（用 pdf_url 也行）
-    match = re.search(r'dg(\d{8})', pdf_url)
+    # 從 URL 抓日期
+    match = re.search(r'dg(\d{8})', current_url)
     if not match:
-        raise Exception("❌ 無法從 PDF 連結中提取日期")
+        raise Exception("❌ 無法從 URL 中抓取日期")
     date_str = match.group(1)
+    file_name = f"NGI_daily_index_{date_str}.pdf"
+    pdf_path = os.path.join(download_dir, file_name)
 
-    # 下載 PDF 檔案
-    pdf_filename = f"NGI_daily_index_{date_str}.pdf"
-    pdf_path = os.path.join(download_dir, pdf_filename)
-
+    # 5️⃣ 使用 requests + cookies 抓頁面內容（PDF）
     session = requests.Session()
     for cookie in driver.get_cookies():
-        session.cookies.set(cookie['name'], cookie['value'])
+        session.cookies.set(cookie["name"], cookie["value"])
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
-                       (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Referer": driver.current_url,
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://www.naturalgasintel.com/news/daily-gas-price-index/"
     }
 
-    resp = session.get(pdf_url, headers=headers)
-    if resp.status_code == 200:
-        with open(pdf_path, 'wb') as f:
-            f.write(resp.content)
-        print(f"✅ PDF 已下載：{pdf_filename}")
+    response = session.get(current_url, headers=headers)
+    if response.status_code == 200:
+        with open(pdf_path, "wb") as f:
+            f.write(response.content)
+        print(f"✅ PDF 已成功下載至：{pdf_path}")
     else:
-        raise Exception(f"❌ PDF 下載失敗，狀態碼：{resp.status_code}")
+        raise Exception(f"❌ PDF 下載失敗，狀態碼：{response.status_code}")
 
 finally:
     driver.quit()
-
-# 🧠 PDF 摘要（同原來程式）
-# summarize_pdf_with_groq(...) + 儲存摘要部分照舊
-
-# 🧠 將 PDF 轉成 base64 並送給 Groq
-def summarize_pdf_with_groq(file_path, api_key):
-    with open(file_path, "rb") as f:
-        pdf_bytes = f.read()
-    encoded_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "model": "llama3-70b-8192",
-        "messages": [
-            {
-                "role": "system",
-                "content": "你是一位專業的天然氣市場分析助理。請根據這份 PDF 文件內容，萃取出六項今日最重要的市場觀察，並以繁體中文條列說明。每項格式為「標題：說明」。"
-            },
-            {
-                "role": "user",
-                "content": f"[PDF Base64]\n{encoded_pdf}"
-            }
-        ]
-    }
-
-    res = requests.post(url, headers=headers, json=payload)
-    res.raise_for_status()
-    return res.json()["choices"][0]["message"]["content"]
-
-summary = summarize_pdf_with_groq(pdf_path, groq_api_key)
-
-# ✏️ 儲存摘要
-summary_file = os.path.join(download_dir, f"summary_{date_str}.txt")
-with open(summary_file, "w", encoding="utf-8") as f:
-    f.write(summary)
-
-print("📌 LLaMA3 摘要結果：\n")
-print(summary)
