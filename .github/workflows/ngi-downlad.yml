@@ -31,7 +31,7 @@ jobs:
         uses: browser-actions/setup-chrome@v1
 
       - name: Run Python script
-        run: python ngi_downloader.py
+        run: python ngi_downloader_and_summary.py
 
       - name: Show downloaded files
         run: ls -l pdf_downloads
