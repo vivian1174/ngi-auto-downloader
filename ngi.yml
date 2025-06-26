@@ -23,8 +23,8 @@ jobs:
 
       - name: 📥 Run NGI PDF downloader
         env:
-          NGI_USERNAME: ${{ secrets.NGI_USERNAME }}
-          NGI_PASSWORD: ${{ secrets.NGI_PASSWORD }}
+          NGI_USERNAME: ${{ NGI_SECRET.NGI_USERNAME }}
+          NGI_PASSWORD: ${{ NGI_SECRET.NGI_PASSWORD }}
         run: |
           mkdir -p pdf_downloads
           python ngi_downloader.py
