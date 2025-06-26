@@ -73,14 +73,26 @@ try:
         view_issue_button = WebDriverWait(driver, 15).until(
             EC.element_to_be_clickable((By.LINK_TEXT, "View Issue"))
         )
-        print("找到按鈕:",view_issue_button)
-        view_issue_button.click()
-        print("按鈕已點擊")
+        print("找到按鈕:", view_issue_button)
+
+        old_url = driver.current_url
+
+        # 改為 JS 點擊，較穩定
+        driver.execute_script("arguments[0].click();", view_issue_button)
+        print("已觸發 JS 點擊 'View Issue'")
+
+        # 等待 URL 改變
+        WebDriverWait(driver, 15).until(EC.url_changes(old_url))
+        current_url = driver.current_url
+        print(f"✅ 跳轉後 URL: {current_url}")
+
     except Exception:
+        current_url = driver.current_url
+        print(f"⚠️ URL 沒有變化（仍為: {current_url}），可能點擊失敗或內容未載入")
         with open("view_issue_fail.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
         driver.save_screenshot("view_issue_fail.png")
-        raise Exception("找不到 'View Issue' 按鈕，已截圖")
+        raise Exception("找不到 'View Issue' 按鈕或無法跳轉，已截圖")
 
     # 跳轉並取得 URL
     time.sleep(5)
