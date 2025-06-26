@@ -22,13 +22,13 @@ os.makedirs(download_dir, exist_ok=True)
 
 # Selenium 設定（headless）
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
 prefs = {
     "download.default_directory": download_dir,
     "plugins.always_open_pdf_externally": True
 }
+options.add_argument("--headless")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
 options.add_experimental_option("prefs", prefs)
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
