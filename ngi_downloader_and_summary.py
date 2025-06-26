@@ -62,6 +62,7 @@ try:
     if not match:
         raise Exception("❌ 無法從 URL 中抓取日期")
     date_str = match.group(1)
+    pdf_url = f"https://www.naturalgasintel.com/protected_documents/dg{date_str}.pdf"
     pdf_filename = f"NGI_daily_index_{date_str}.pdf"
     pdf_path = os.path.join(download_dir, pdf_filename)
 
