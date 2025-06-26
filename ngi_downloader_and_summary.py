@@ -103,17 +103,29 @@ try:
         "Referer": "https://www.naturalgasintel.com/news/daily-gas-price-index/",
     }
 
-    resp = session.get(current_url, headers=headers)
-    if resp.status_code == 200:
-        with open(pdf_path, "wb") as f:
-            f.write(resp.content)
-        print(f"✅ PDF 下載成功: {pdf_filename}")
+    try:
+    pdf_link_elem = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
+    )
+    pdf_url = pdf_link_elem.get_attribute("href")
+    print(f"🔗 PDF 下載連結: {pdf_url}")
+
+    # 透過 selenium 模擬點擊下載連結（讓 Chrome 自動下載）
+    pdf_link_elem.click()
+    print("📥 已透過瀏覽器觸發 PDF 下載")
+
+    # 等待檔案下載完成
+    file_name = f"NGI daily index_{date_str}.pdf"
+    pdf_path = os.path.join(download_dir, file_name)
+
+    for i in range(30):  # 最多等 30 秒
+        if os.path.exists(pdf_path):
+            print(f"✅ PDF 已成功下載: {file_name}")
+            break
+        time.sleep(1)
     else:
-        raise Exception(f"❌ PDF 下載失敗，HTTP 狀態碼: {resp.status_code}")
+        print("❌ PDF 檔案未在時間內下載完成")
 
 except Exception as e:
-    print(f"發生錯誤: {e}")
-
-finally:
-    driver.quit()
+    print(f"❌ 找不到 PDF 下載連結或下載失敗: {e}")
 
