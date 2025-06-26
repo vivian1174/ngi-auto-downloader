@@ -14,7 +14,7 @@ username_str = os.getenv("NGI_USERNAME")
 password_str = os.getenv("NGI_PASSWORD")
 
 # 下載資料夾 (GitHub Actions 工作目錄下的 pdf_downloads)
-download_dir = os.path.join(os.getcwd(), "pdf_downloads")
+download_dir = "pdf_downloads"
 os.makedirs(download_dir, exist_ok=True)
 
 options = webdriver.ChromeOptions()
