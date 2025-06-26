@@ -73,7 +73,9 @@ try:
         view_issue_button = WebDriverWait(driver, 15).until(
             EC.element_to_be_clickable((By.LINK_TEXT, "View Issue"))
         )
+        print("找到按鈕:",view_issue_button)
         view_issue_button.click()
+        print("按鈕已點擊")
     except Exception:
         with open("view_issue_fail.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
