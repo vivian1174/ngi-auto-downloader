@@ -68,20 +68,17 @@ try:
     except Exception:
         print("沒有 cookie 按鈕，跳過")
 
-    # 點擊 "View Issue"
-    # 找到 "View Issue" 並取得其 href
+    # 找到 "View Issue" 並取得其 href，改用 get() 導向正確期刊頁
     try:
         view_issue_button = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.LINK_TEXT, "View Issue"))
         )
         print("找到按鈕:", view_issue_button)
-    
+
         issue_url = view_issue_button.get_attribute("href")
         print(f"🔗 即將前往期刊頁面: {issue_url}")
-    
-        # 改為直接跳轉，而非 click
         driver.get(issue_url)
-    
+
     except Exception:
         current_url = driver.current_url
         print(f"⚠️ 未找到 'View Issue' 或頁面未更新（仍為: {current_url}）")
@@ -90,21 +87,22 @@ try:
         driver.save_screenshot("view_issue_fail.png")
         raise Exception("找不到 'View Issue' 按鈕或期刊內容未載入，已截圖")
 
-    # 🔄 改為從 PDF URL 中擷取日期字串
+    # 等待 PDF 連結出現並取得連結
     pdf_link_elem = WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
     )
     pdf_url = pdf_link_elem.get_attribute("href")
     print(f"🔗 PDF 下載連結: {pdf_url}")
 
-    match = re.search(r'dg(\d{8})', pdf_url)
+    # ✅ 從 issue_url 中擷取 dg 日期字串
+    match = re.search(r'dg(\d{8})', issue_url)
     if not match:
-        raise Exception("❌ 無法從 PDF 連結中擷取日期")
+        raise Exception("❌ 無法從 URL 中擷取日期")
     date_str = match.group(1)
     pdf_filename = f"NGI_daily_index_{date_str}.pdf"
     pdf_path = os.path.join(download_dir, pdf_filename)
 
-    # 下載 PDF
+    # 下載 PDF（由於 headless 模式，需確認檔案實際存在）
     pdf_link_elem.click()
     print("📥 已觸發瀏覽器下載 PDF")
 
@@ -121,3 +119,4 @@ except Exception as e:
 
 finally:
     driver.quit()
+
