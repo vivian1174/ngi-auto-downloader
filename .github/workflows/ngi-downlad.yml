@@ -1,43 +1,30 @@
-name: Download NGI Daily Index
+name: Download NGI PDF
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '30 11 * * *'  # 每日 UTC 時間 11:30（台灣 19:30）
+    - cron: '0 13 * * *'  # 每天 UTC 13:00 執行（台灣時間 21:00）
+  workflow_dispatch:
 
 jobs:
-  download-and-upload:
+  download:
     runs-on: ubuntu-latest
-
-    env:
-      NGI_USERNAME: ${{ secrets.NGI_USERNAME }}
-      NGI_PASSWORD: ${{ secrets.NGI_PASSWORD }}
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - name: Checkout Repo
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install selenium webdriver-manager requests
+          pip install playwright requests
+          playwright install --with-deps
 
-      - name: Install Google Chrome
-        uses: browser-actions/setup-chrome@v1
-
-      - name: Run Python script
-        run: python ngi_downloader_and_summary.py
-
-      - name: Show downloaded files
-        run: ls -l pdf_downloads
-
-      - name: Upload PDF to GitHub Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: NGI_PDF
-          path: pdf_downloads/*.pdf
+      - name: Run Playwright Script
+        env:
+          NGI_USERNAME: ${{ secrets.NGI_USERNAME }}
+          NGI_PASSWORD: ${{ secrets.NGI_PASSWORD }}
+        run: |
+          python ngi_downloader_and_summary.py
