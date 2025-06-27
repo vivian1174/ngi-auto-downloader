@@ -69,25 +69,22 @@ try:
         print("沒有 cookie 按鈕，跳過")
 
     # 點擊 "View Issue"
+    # 找到 "View Issue" 並取得其 href
     try:
         view_issue_button = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.LINK_TEXT, "View Issue"))
+            EC.presence_of_element_located((By.LINK_TEXT, "View Issue"))
         )
         print("找到按鈕:", view_issue_button)
     
-        # 改用 JavaScript click，觸發 AJAX 載入
-        driver.execute_script("arguments[0].click();", view_issue_button)
-        print("已觸發 JS 點擊 'View Issue'")
+        issue_url = view_issue_button.get_attribute("href")
+        print(f"🔗 即將前往期刊頁面: {issue_url}")
     
-        # 等待 PDF 連結出現（代表內容載入完成）
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
-        )
-        print("✅ PDF 連結已出現，視為成功載入期刊內容")
+        # 改為直接跳轉，而非 click
+        driver.get(issue_url)
     
     except Exception:
         current_url = driver.current_url
-        print(f"⚠️ 未找到 PDF 或頁面未更新（仍為: {current_url}）")
+        print(f"⚠️ 未找到 'View Issue' 或頁面未更新（仍為: {current_url}）")
         with open("view_issue_fail.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
         driver.save_screenshot("view_issue_fail.png")
