@@ -85,10 +85,6 @@ try:
         )
         print("✅ PDF 連結已出現，視為成功載入期刊內容")
     
-        # 現在可以抓 URL 來抽日期（有可能還是原本 URL，但 PDF 連結會變）
-        current_url = driver.current_url
-        print(f"目前 URL: {current_url}")
-    
     except Exception:
         current_url = driver.current_url
         print(f"⚠️ 未找到 PDF 或頁面未更新（仍為: {current_url}）")
@@ -97,41 +93,34 @@ try:
         driver.save_screenshot("view_issue_fail.png")
         raise Exception("找不到 'View Issue' 按鈕或期刊內容未載入，已截圖")
 
-    # 跳轉並取得 URL
-    time.sleep(5)
-    current_url = driver.current_url
-    print(f"跳轉後 URL: {current_url}")
+    # 🔄 改為從 PDF URL 中擷取日期字串
+    pdf_link_elem = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
+    )
+    pdf_url = pdf_link_elem.get_attribute("href")
+    print(f"🔗 PDF 下載連結: {pdf_url}")
 
-    # 抓出日期字串
-    match = re.search(r'dg(\d{8})', current_url)
+    match = re.search(r'dg(\d{8})', pdf_url)
     if not match:
-        raise Exception("無法從 URL 中擷取日期")
+        raise Exception("❌ 無法從 PDF 連結中擷取日期")
     date_str = match.group(1)
     pdf_filename = f"NGI_daily_index_{date_str}.pdf"
     pdf_path = os.path.join(download_dir, pdf_filename)
 
-    # 找出 PDF 連結並點擊下載
-    try:
-        pdf_link_elem = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//a[contains(@href, '.pdf')]"))
-        )
-        pdf_url = pdf_link_elem.get_attribute("href")
-        print(f"🔗 PDF 下載連結: {pdf_url}")
+    # 下載 PDF
+    pdf_link_elem.click()
+    print("📥 已觸發瀏覽器下載 PDF")
 
-        pdf_link_elem.click()
-        print("📥 已觸發瀏覽器下載 PDF")
+    for i in range(30):
+        if os.path.exists(pdf_path):
+            print(f"✅ PDF 已成功下載: {pdf_filename}")
+            break
+        time.sleep(1)
+    else:
+        print("❌ PDF 檔案未在 30 秒內下載完成")
 
-        # 等待下載完成
-        for i in range(30):
-            if os.path.exists(pdf_path):
-                print(f"✅ PDF 已成功下載: {pdf_filename}")
-                break
-            time.sleep(1)
-        else:
-            print("❌ PDF 檔案未在 30 秒內下載完成")
-
-    except Exception as e:
-        print(f"❌ 找不到 PDF 或下載失敗: {e}")
+except Exception as e:
+    print(f"❌ 發生例外錯誤: {e}")
 
 finally:
     driver.quit()
